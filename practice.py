@@ -8,7 +8,7 @@ gamma0 = 3
 
 """Define grid in reciprocal space"""
 K = (4*np.pi)/(3*a)
-N = 400
+N = 500
 
 kx = np.linspace(-K,K,N)
 ky = np.linspace(-K,K,N)
@@ -38,11 +38,11 @@ E_neg = -E
 """Plot on same 3D axes"""
 fig = plt.figure(figsize=(10, 7))
 ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(KX, KY, E_plus, cmap='viridis', alpha=0.8)
-ax.plot_surface(KX, KY, E_neg, cmap='viridis', alpha=0.8)
+ax.plot_surface(KX, KY, E_plus, cmap='viridis', alpha=0.9)
+ax.plot_surface(KX, KY, E_neg, cmap='viridis', alpha=0.9)
 ax.set_xlim([-K, K])
 ax.set_ylim([-K, K])
 ax.set_zlim([-10, 10])
 
-ax.view_init(elev=25, azim=45)
+ax.view_init(elev=12, azim=35)
 plt.show()
