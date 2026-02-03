@@ -31,4 +31,18 @@ def f(kx, ky, sites):
     return sum
 
 """Calculate positive and negative surfaces"""
+E = gamma0 * np.abs(f(KX, KY, sites))
+E_plus = E
+E_neg = -E
+
 """Plot on same 3D axes"""
+fig = plt.figure(figsize=(10, 7))
+ax = fig.add_subplot(111, projection='3d')
+ax.plot_surface(KX, KY, E_plus, cmap='viridis', alpha=0.8)
+ax.plot_surface(KX, KY, E_neg, cmap='viridis', alpha=0.8)
+ax.set_xlim([-K, K])
+ax.set_ylim([-K, K])
+ax.set_zlim([-10, 10])
+
+ax.view_init(elev=25, azim=45)
+plt.show()
