@@ -1,0 +1,94 @@
+import numpy as np
+from numpy import linalg as LA
+import matplotlib.pyplot as plt
+
+a = 2.46
+gamma0 = 3
+theta = 1.05 * np.pi / 180  # Twist angle in radians
+
+
+# Reciprocal grid
+K = np.array([(4*np.pi)/(3*a),0])
+Nk = 25
+
+kx = np.linspace(-K[0], K[0], Nk)
+ky = np.linspace(-K[1], K[1], Nk)
+KX, KY = np.meshgrid(kx, ky)
+
+# No twist angle
+
+def H_mono(kx,ky):
+    
+    H = -gamma0 * np.array([[0, np.sqrt(3)*a/2*(kx - 1j*ky)],[np.sqrt(3)*a/2*(kx + 1j*ky), 0]])
+    return H
+
+wAA = 0.08
+wAB = 0.10
+
+phis = [0, 2*np.pi/3, -2*np.pi/3]
+
+T_mats = [
+    np.array([[wAA, wAB * np.exp(-1j * phi)], [wAB * np.exp(1j * phi), wAA]]) for phi in phis
+]
+
+def rotation_matrix(theta):
+    R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
+    return R
+
+# Rotate K points
+
+K1 = rotation_matrix(theta/2) @ K
+K2 = rotation_matrix(-theta/2) @ K
+
+q1 = K2 - K1
+q2 = rotation_matrix(2*np.pi/3) @ q1
+q3 = rotation_matrix(-2*np.pi/3) @ q1
+
+q = [q1, q2, q3]
+
+ 
+N_G = 2
+G_list= []
+b1 = q2-q1
+b2 = q3-q1
+
+for m in range(-N_G, N_G+1):
+    for n in range(-N_G, N_G+1):
+        G_list.append(m*b1 + n*b2)
+G_list = np.array(G_list)
+NG = len(G_list)
+
+def H_BM(kx,ky,theta):
+    
+    dimensions = 4 * NG
+    H = np.zeros((dimensions, dimensions), dtype=complex)
+
+    for i, G in enumerate(G_list):
+        kG = np.array([kx, ky]) - G
+
+        k1 = rotation_matrix(theta/2) @ kG  # Layer 1
+        k2 = rotation_matrix(-theta/2) @ kG # Layer 2
+
+        H1 = H_mono(k1[0], k1[1])
+        H2 = H_mono(k2[0], k2[1])
+
+        H[4*i:4*i+2, 4*i:4*i+2] = H1
+        H[4*i+2:4*i+4, 4*i+2:4*i+4] = H2
+
+    for i, G in enumerate(G_list):
+        for j, Gp in enumerate(G_list):
+            for q, T in zip(q, T_mats):
+                if np.linalg.norm(G - Gp - q) < 1e-6:  # Check if G and Gp are connected by q
+                    H[4*i:4*i+2, 4*j+2:4*j+4] = T
+                    H[4*j+2:4*j+4, 4*i:4*i+2] = T.conj().T  # Hermitian conjugate
+
+    return H
+
+bands = np.zeros((Nk, Nk, 4*NG))
+
+for i in range(Nk):
+    for j in range(Nk):
+        H = H_BM(KX[i, j], KY[i, j], theta)
+        eigenvalues = LA.eigh(H)[0]  # Only return eigenvalues, not eigenvectors
+        bands[i, j, :] = eigenvalues
+

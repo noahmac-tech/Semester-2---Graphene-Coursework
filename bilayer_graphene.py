@@ -5,8 +5,6 @@ import matplotlib.pyplot as plt
 a = 2.46
 gamma0 = 3
 
-hbar = 6.582e-16 # eV*s
-vF = 3 * a * gamma0 / (2 * hbar) # Fermi velocity in m/s
 
 # Reciprocal grid
 K = (4*np.pi)/(3*a)
