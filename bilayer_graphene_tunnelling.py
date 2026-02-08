@@ -77,8 +77,8 @@ def H_BM(kx,ky,theta):
 
     for i, G in enumerate(G_list):
         for j, Gp in enumerate(G_list):
-            for q, T in zip(q, T_mats):
-                if np.linalg.norm(G - Gp - q) < 1e-6:  # Check if G and Gp are connected by q
+            for qs, T in zip(q, T_mats):
+                if np.linalg.norm(G - Gp - qs) < 1e-6:  # Check if G and Gp are connected by q
                     H[4*i:4*i+2, 4*j+2:4*j+4] = T
                     H[4*j+2:4*j+4, 4*i:4*i+2] = T.conj().T  # Hermitian conjugate
 
@@ -92,3 +92,71 @@ for i in range(Nk):
         eigenvalues = LA.eigh(H)[0]  # Only return eigenvalues, not eigenvectors
         bands[i, j, :] = eigenvalues
 
+# Define  high symmetry points
+
+Gamma = np.array([0, 0])
+K_point = (2*b1 + b2)/3 # Corner of hexagon
+M = (b1 + b2)/2 # Midpoint of edge of hexagon
+
+def interpolate(k1, k2, Nk):
+    return np.array([k1 + (k2-k1)*t for t in np.linspace(0, 1, Nk)])
+
+Nk_path = 40
+
+k_path = np.vstack([
+    interpolate(Gamma, K_point, Nk_path),
+    interpolate(K_point, M, Nk_path),
+    interpolate(M, Gamma, Nk_path)
+])
+
+x_ticks = [0, Nk_path, 2*Nk_path, 3*Nk_path]
+x_labels = ['Γ', 'K', 'M', 'Γ']
+
+bands = []
+
+for kx, ky in k_path:
+    H = H_BM(kx, ky, theta)
+    eigenvalues = LA.eigh(H)[0]
+    bands.append(eigenvalues)
+
+bands = np.array(bands)
+
+plt.figure(figsize=(8, 6))
+for n in range(bands.shape[1]):
+    plt.plot(bands[:, n], color='blue', linewidth=0.8)
+for xc in x_ticks:
+    plt.axvline(x=xc, color='red', linestyle='--', linewidth=0.5)
+plt.xticks(x_ticks, x_labels)
+plt.xlabel('Path in k-space')
+plt.ylabel('Energy (eV)')
+plt.title('Band structure of bilayer graphene with twist angle')
+plt.show()
+
+
+Nk = 20
+k_range = 0.05
+
+kx = np.linspace(-k_range, k_range, Nk)
+ky = np.linspace(-k_range, k_range, Nk)
+KX, KY = np.meshgrid(kx, ky)
+
+nbands = 8
+bands2d = np.zeros((Nk, Nk, nbands))
+
+for i in range(Nk):
+    for j in range(Nk):
+        H = H_BM(KX[i, j], KY[i, j], theta)
+        eigenvalues = LA.eigh(H)[0]
+        bands2d[i, j, :] = eigenvalues[:nbands]
+
+fig = plt.figure(figsize=(10, 7))
+ax = fig.add_subplot(111, projection='3d')
+ax.plot_surface(KX, KY, bands2d[:, :, 0], cmap='viridis', edgecolor='none')
+
+ax.set_xlabel(r'$k_x$')
+ax.set_ylabel(r'$k_y$')
+ax.set_zlabel('Energy (eV)')
+ax.set_title('Lowest Moiré Band near Γ')
+
+plt.tight_layout()
+plt.show()
