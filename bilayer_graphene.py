@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 a = 2.46
 gamma0 = 3
 
-
 # Reciprocal grid
 K = (4*np.pi)/(3*a)
 N = 1000
@@ -52,12 +51,12 @@ for i in range(N):
         H = H_bilayer_twist_no_coupling(KX[i, j], KY[i, j], theta) # example twist angle
         eigenvalues = LA.eigh(H)[0]  # Only return eigenvalues, not eigenvectors
         bands[i, j, :] = eigenvalues
-
+colourmap = ['viridis', 'inferno', 'plasma', 'cividis']  # Example colormaps for the 4 bands
 # Plotting the bands
 fig = plt.figure(figsize=(10, 7))
 ax = fig.add_subplot(111, projection='3d')
 for n in range(4):
-    ax.plot_surface(KX, KY, bands[:, :, n], cmap='viridis', alpha=0.8)
+    ax.plot_surface(KX, KY, bands[:, :, n], colourmap[n], alpha=0.8)
 ax.set_xlim([-2.5, 2.5])
 ax.set_ylim([-2.5, 2.5])
 ax.set_zlim([-10, 10])
