@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 
 a = 2.46
 gamma0 = 3
-theta = 1.05 * np.pi / 180  # Twist angle in radians
+theta = 1.1 * np.pi / 180  # Twist angle in radians
+h_bar = 6.582119569e-16  # Planck's constant in eV*s
+vF = (np.sqrt(3) * a * gamma0) / (2 * h_bar)  # Fermi velocity in m/s
 
 
 # Reciprocal grid
@@ -22,8 +24,8 @@ def H_mono(kx,ky):
     H = -gamma0 * np.array([[0, np.sqrt(3)*a/2*(kx - 1j*ky)],[np.sqrt(3)*a/2*(kx + 1j*ky), 0]])
     return H
 
-wAA = 0.08
-wAB = 0.10
+wAA = 0.0975
+wAB = 0.0797
 
 phis = [0, 2*np.pi/3, -2*np.pi/3]
 
@@ -45,9 +47,10 @@ q2 = rotation_matrix(2*np.pi/3) @ q1
 q3 = rotation_matrix(-2*np.pi/3) @ q1
 
 q = [q1, q2, q3]
-
+alpha = wAB / (h_bar * vF * np.linalg.norm(q1))
+print(alpha)
  
-N_G = 2
+N_G = 6
 G_list= []
 b1 = q2-q1
 b2 = q3-q1
