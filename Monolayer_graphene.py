@@ -63,8 +63,8 @@ ax.set_ylabel('ky (1/Å)', fontsize=12)
 ax.set_zlabel('Energy (eV)', fontsize=12)
 
 ax.view_init(elev=8, azim=10)
-plt.show()
 plt.savefig('Monolayer_Graphene_Band_Structure.png')
+plt.show()
 
 """Plot of small k-space around K point"""
 fig = plt.figure(figsize=(10, 7))
@@ -79,5 +79,5 @@ ax.set_zlabel('Energy (eV)')
 ax.set_title('Monolayer Graphene Band Structure Near K (Dirac Cone)')
 ax.view_init(elev=8, azim=10)
 plt.tight_layout()
-plt.show()
 plt.savefig('Monolayer_Graphene_Dirac_Cone.png')
+plt.show()
