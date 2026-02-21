@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.linalg import eigh
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 a = 2.46
 gamma0 = 3
@@ -24,6 +25,10 @@ kx_small = np.linspace(-kmax, kmax, N)
 ky_small = np.linspace(-kmax, kmax, N)
 KX_small, KY_small = np.meshgrid(kx_small, ky_small)
 
+qmax = 5e8
+qx = np.linspace(-qmax, qmax, N)
+qy = np.linspace(-qmax, qmax, N)
+QX, QY = np.meshgrid(qx, qy)
 
 """Define Nearest Neighbour sites"""
 """Choosing 0 as origin"""
@@ -49,11 +54,34 @@ E_small = hbar * vF * np.sqrt(KX_small**2 + KY_small**2) / eV
 E_small_plus = E_small
 E_small_neg = -E_small
 
+E_small_q = hbar * vF * np.sqrt(QX**2 + QY**2) / eV
+E_small_q_plus = E_small_q
+E_small_q_neg = -E_small_q
+
 """Plot of positive and negative surfaces"""
 fig = plt.figure(figsize=(10, 7))
 ax = fig.add_subplot(111, projection='3d')
 ax.plot_surface(KX, KY, E_plus, cmap='inferno', alpha=0.8)
 ax.plot_surface(KX, KY, E_neg, cmap='viridis', alpha=0.8)
+
+Kmag = 4*np.pi/(3*a)            # K = 4π/3a
+k2 = 2*np.pi/(3*a)
+k3 = 2*np.pi/(np.sqrt(3)*a)
+
+hex_vertices = np.array([
+    [ Kmag,  0.0, 0.0],
+    [ k2,    k3,  0.0],
+    [-k2,    k3,  0.0],
+    [-Kmag,  0.0, 0.0],
+    [-k2,   -k3,  0.0],
+    [ k2,   -k3,  0.0]
+])
+
+hexagon = Poly3DCollection([hex_vertices],alpha=1,edgecolor='black',linewidth=2)
+
+ax.add_collection3d(hexagon)
+
+
 ax.set_xlim([-2.5, 2.5])
 ax.set_ylim([-2.5, 2.5])
 ax.set_zlim([-10, 10])
@@ -80,4 +108,18 @@ ax.set_title('Monolayer Graphene Band Structure Near K (Dirac Cone)')
 ax.view_init(elev=8, azim=10)
 plt.tight_layout()
 plt.savefig('Monolayer_Graphene_Dirac_Cone.png')
+plt.show()
+
+"""Plot of small q-space around Gamma point"""
+fig = plt.figure(figsize=(10, 7))
+ax = fig.add_subplot(111, projection='3d')
+ax.plot_surface(QX, QY, E_small_q_plus, cmap='inferno', alpha=0.9)
+ax.plot_surface(QX, QY, E_small_q_neg, cmap='viridis', alpha=0.9)
+ax.set_xlabel(r'$q_x$ (m$^{-1}$)')
+ax.set_ylabel(r'$q_y$ (m$^{-1}$)')
+ax.set_zlabel('Energy (eV)')
+ax.set_title('Monolayer Graphene Band Structure Near Gamma Point')
+ax.view_init(elev=8, azim=10)
+plt.tight_layout()
+plt.savefig('Monolayer_Graphene_Gamma_Point.png')
 plt.show()
