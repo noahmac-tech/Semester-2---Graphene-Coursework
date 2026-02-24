@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-theta_deg = 1.05
+theta_deg = 2.3
 theta_rad = np.radians(theta_deg)
 
 a = 0.246
@@ -93,16 +93,15 @@ perp2 = np.array([-u2[1], u2[0]])
 
 offset = 0.08 * L_M
 
-ax.text(*(mid_a1 + offset*perp1), r"$\mathbf{a}_1^{M}$", fontsize=12)
-ax.text(*(mid_a2 + offset*perp2), r"$\mathbf{a}_2^{M}$", fontsize=12)
+ax.text(*(mid_a1 + offset*perp1), r"$\mathbf{a}_1^{M}$", fontsize=16, color='blue')
+ax.text(*(mid_a2 + offset*perp2), r"$\mathbf{a}_2^{M}$", fontsize=16, color='blue')
 
-
-ax.set_title(f"Moiré geometry of twisted bilayer graphene ($\\theta$ = {theta_deg:.2f}°)")
-ax.set_xlabel("x (nm)")
-ax.set_ylabel("y (nm)")
+ax.set_xlabel("x (nm)", fontsize=14)
+ax.set_ylabel("y (nm)", fontsize=14)
 ax.grid(True, alpha=0.2)
-ax.legend(loc="upper right", fontsize=9, framealpha=0.9)
-
+ax.legend(loc="upper right", fontsize=12, framealpha=0.9)
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
 plt.tight_layout()
 plt.savefig("moire_geometry_tbg_primitive_vectors.png", bbox_inches='tight', pad_inches=0.1)
 plt.show()

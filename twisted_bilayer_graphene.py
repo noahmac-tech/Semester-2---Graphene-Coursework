@@ -10,6 +10,8 @@ gamma0 = 2.8
 t0 = 0.35
 r0 = 0.45
 
+# Section C
+
 r_nn = a / np.sqrt(3)
 nn_cut = 1.10 * r_nn
 interlayer_cut = 5.0
@@ -189,16 +191,24 @@ for m, n in mn_list:
 thetas_deg = np.array(thetas_deg)
 Ws = np.array(Ws)
 
+coeffs = np.polyfit(thetas_deg, Ws, 2)   # [a, b, c]
+poly = np.poly1d(coeffs)
+
+x = np.linspace(thetas_deg.max(), thetas_deg.min(), 200)
+W_quad = poly(x)
+
 # Plot bandwidth vs twist angle (Section IV.C figure)
 order = np.argsort(thetas_deg)
 plt.figure(figsize=(7,4))
-plt.plot(thetas_deg[order], Ws[order], marker="o")
+plt.scatter(thetas_deg[order], Ws[order], marker="x", color='black')
+plt.plot(x, W_quad, "-", label=rf"Quadratic fit")
+plt.legend()
 plt.gca().invert_xaxis()  # optional: show smaller angles to the right
 plt.xlabel("Twist angle θ (degrees)")
-plt.ylabel("Low-energy miniband bandwidth W (eV)")
-plt.title("TBG tight-binding: evolution of low-energy bandwidth with twist angle")
+plt.ylabel("W (eV)")
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
+plt.savefig("TBG_bandwidth_vs_angle.png", bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
 def reciprocal_vectors(t1, t2):
@@ -318,7 +328,7 @@ def build_sparse_H_tbg_k(pos1, subl1, pos2, subl2, t1, t2, kvec):
     Hk = (Hk + Hk.getH()) * 0.5
     return Hk
 
-angles_to_compare = [(5,6), (8,9), (9,10)]  # ~6°, ~4°, ~3.5° from your list
+angles_to_compare = [(5,6), (8,9), (14,15)]  # ~6°, ~4°, ~2.3° from your list
 
 plt.figure(figsize=(9,5))
 
@@ -409,5 +419,138 @@ axes[-1].set_xticks([x[0], x[len(x)//3], x[2*len(x)//3], x[-1]])
 axes[-1].set_xticklabels([r"$\Gamma$", r"$K$", r"$M$", r"$\Gamma$"])
 axes[-1].set_xlabel("k-path in moiré Brillouin zone")
 
+plt.tight_layout()
+plt.savefig("TBG_bandstructure_comparison.png", bbox_inches='tight', pad_inches=0.1)
+plt.show()
+
+
+
+# Section D
+
+def dos_from_kmesh(pos1, subl1, pos2, subl2, t1,t2, Nk=17, k_eigs = 40, sigma_e = 0.008, Emin = -0.15, Emax=0.15, nE=1200, sigma_shift=1e-4):
+
+    b1, b2 = reciprocal_vectors(t1, t2)
+
+    us = np.linspace(0, 1, Nk, endpoint=False)
+    vs = np.linspace(0, 1, Nk, endpoint=False)
+
+    evals_all = []
+
+    for u in us:
+        for v in vs:
+            kvec = u*b1 + v*b2
+            Hk = build_sparse_H_tbg_k(pos1, subl1, pos2, subl2, t1, t2, kvec)
+            
+            ev = eigsh(Hk, k=k_eigs, sigma=sigma_shift, which="LM",
+                        return_eigenvectors=False, maxiter=5000)
+            evals_all.append(np.real(ev))
+
+    evals_all = np.concatenate(evals_all)
+
+    E = np.linspace(Emin, Emax, nE)
+    dos = np.zeros_like(E)
+    pref = 1.0 / ((np.sqrt(2*np.pi) * sigma_e))  # normalization prefactor
+    
+    for e0 in evals_all:
+        dos += pref * np.exp(-0.5 * ((E - e0)/sigma_e)**2)
+    
+    dos /= (Nk**2)  # average over k-points
+
+    return E, dos, evals_all
+
+def first_vhs_peak(E, dos, side='pos', E_window=(0.02, 0.25), pick='closest'):
+    
+    E1, E2 = E_window
+
+    if side == "pos":
+        mask = (E >= E1) & (E <= E2)
+    else:
+        mask = (E <= -E1) & (E >= -E2)
+
+    Em = E[mask]
+    dm = dos[mask]
+
+    if Em.size < 3:
+        j = np.argmax(dm)
+        return float(Em[j]), float(dm[j])
+
+    peaks = np.where((dm[1:-1] > dm[:-2]) & (dm[1:-1] > dm[2:]))[0] + 1
+    if peaks.size == 0:
+        j = np.argmax(dm)
+        return float(Em[j]), float(dm[j])
+
+    if pick == "highest":
+        j = peaks[np.argmax(dm[peaks])]
+    else:  # pick == "closest"
+        j = peaks[np.argmin(np.abs(Em[peaks]))]
+
+    return float(Em[j]), float(dm[j])
+
+
+
+dos_angles = [(5,6), (8,9), (10,11), (14,15)]   # adjust as needed
+
+theta_list = []
+Evhs_list = []
+Dvhs_list = []
+
+plt.figure(figsize=(7,4))
+
+for (m,n) in dos_angles:
+    theta = theta_from_mn(m,n)
+    theta_deg = np.degrees(theta)
+
+    pos1, subl1, t1, t2 = generate_layer1_in_cell(m,n)
+    pos2 = wrap_to_cell(pos1 @ rot(theta).T, t1, t2)
+    subl2 = subl1.copy()
+
+    E, dos, _ = dos_from_kmesh(pos1,subl1,pos2,subl2,t1,t2,
+                               Nk=17, k_eigs=40, sigma_e=0.008,
+                               Emin=-0.15, Emax=0.15, nE=1200)
+
+    # plot DOS curve
+    plt.plot(E, dos, lw=1.5, label=f"{theta_deg:.2f}°")
+
+    # extract first vHS peak (positive side)
+    Evhs, Dvhs = first_vhs_peak(E, dos, side="pos", E_window=(0.02, 0.25), pick="closest")
+    theta_list.append(theta_deg)
+    Evhs_list.append(Evhs)
+    Dvhs_list.append(Dvhs)
+
+print(Evhs_list)
+
+plt.axvline(0, alpha=0.3)
+plt.xlabel("Energy E (eV)")
+plt.ylabel("DOS (arb. units)")
+plt.title("DOS near charge neutrality vs twist angle")
+plt.legend()
+plt.grid(True, alpha=0.2)
+plt.tight_layout()
+plt.show()
+
+# vHS position vs angle
+theta_list = np.array(theta_list)
+Evhs_list  = np.array(Evhs_list)
+Dvhs_list  = np.array(Dvhs_list)
+
+ordr = np.argsort(theta_list)
+
+plt.figure(figsize=(6,4))
+plt.plot(theta_list[ordr], Evhs_list[ordr], "o-")
+plt.gca().invert_xaxis()
+plt.xlabel("Twist angle θ (deg)")
+plt.ylabel("First vHS peak energy (eV)")
+plt.title("vHS peak moves toward 0 as θ decreases")
+plt.grid(True, alpha=0.2)
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(6,4))
+plt.plot(theta_list[ordr], Dvhs_list[ordr], "o-")
+plt.gca().invert_xaxis()
+plt.xlabel("Twist angle θ (deg)")
+plt.ylabel("DOS peak height (arb.)")
+plt.title("vHS peak height increases as θ decreases")
+plt.grid(True, alpha=0.2)
 plt.tight_layout()
 plt.show()
