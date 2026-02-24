@@ -381,7 +381,7 @@ for (m, n) in angles_to_compare:
         plt.plot(x, bands[:, b], lw=1, label=f"{theta_deg:.2f}°" if b == 0 else None)
 
 # x-axis ticks at symmetry points
-fig, axes = plt.subplots(3, 1, figsize=(7,9), sharex=True)
+fig, axes = plt.subplots(3, 1, figsize=(7,9), sharex=False)
 
 for ax, (m, n) in zip(axes, angles_to_compare):
     theta = theta_from_mn(m, n)
