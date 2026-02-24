@@ -44,10 +44,6 @@ def dos_from_kmesh(pos1, subl1, pos2, subl2, t1,t2, Nk=17, k_eigs = 40, sigma_e 
 
 dos_angles = [(5,6), (8,9), (10,11), (14,15)]   # adjust as needed
 
-theta_list = []
-Evhs_list = []
-Dvhs_list = []
-
 plt.figure(figsize=(7,4))
 
 for (m,n) in dos_angles:
