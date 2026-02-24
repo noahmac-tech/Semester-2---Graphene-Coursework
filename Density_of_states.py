@@ -42,31 +42,6 @@ def dos_from_kmesh(pos1, subl1, pos2, subl2, t1,t2, Nk=17, k_eigs = 40, sigma_e 
 
     return E, dos, evals_all
 
-def first_prominent_peak(E, dos, E_window=(0.02, 0.20), rel_height=0.25):
-    mask = (E >= E_window[0]) & (E <= E_window[1])
-    Em = E[mask]
-    dm = dos[mask]
-
-    peaks = np.where((dm[1:-1] > dm[:-2]) & (dm[1:-1] > dm[2:]))[0] + 1
-    if peaks.size == 0:
-        j = np.argmax(dm)
-        return float(Em[j]), float(dm[j])
-
-    # “prominent” means peak higher than (min + rel_height*(max-min)) in window
-    dmin, dmax = dm.min(), dm.max()
-    thresh = dmin + rel_height * (dmax - dmin)
-
-    peaks = peaks[dm[peaks] >= thresh]
-    if peaks.size == 0:
-        # fallback: choose highest
-        j = np.argmax(dm)
-        return float(Em[j]), float(dm[j])
-
-    # choose the one closest to zero among prominent peaks
-    j = peaks[np.argmin(Em[peaks])]
-    return float(Em[j]), float(dm[j])
-
-
 dos_angles = [(5,6), (8,9), (10,11), (14,15)]   # adjust as needed
 
 theta_list = []
