@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-def plot_full_bz_surface(a_ang=2.46, gamma0=2.8, N=1000):
+def plot_full_bz_surface(a_ang, gamma0, N):
     """3D tight-binding dispersion over a square k-grid spanning ±K."""
     K = (4*np.pi)/(3*a_ang)
 
@@ -60,7 +60,7 @@ def plot_full_bz_surface(a_ang=2.46, gamma0=2.8, N=1000):
     plt.savefig('Monolayer_Graphene_Band_Structure.png', bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
-def plot_dirac_cone(qmax=5e8, N=1000, vF=1e6):
+def plot_dirac_cone(qmax, N, vF):
     """3D Dirac cone in small-q approximation around a Dirac point."""
     hbar = 1.0545718e-34
     eV = 1.60217662e-19
@@ -94,7 +94,7 @@ def plot_dirac_cone(qmax=5e8, N=1000, vF=1e6):
     plt.savefig('Monolayer_Graphene_Gamma_Point.png', bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
-def check_slope(qmax=5e8, N=1000, vF=1e6):
+def check_slope(qmax, N, vF):
     """Calculating slope at dirac point to verify it matches vF."""
     hbar = 1.0545718e-34
     eV = 1.60217662e-19
@@ -113,12 +113,20 @@ def check_slope(qmax=5e8, N=1000, vF=1e6):
     q_fit = q[mid-m:mid+m]
     E_fit = Eline[mid-m:mid+m]
 
-    slope, intercept = np.polyfit(np.abs(q_fit), E_fit, 1)
+    coeffs, cov = np.polyfit(np.abs(q_fit), E_fit, 1, cov=True)
+    
+    slope = coeffs[0]
+    intercept = coeffs[1]
+
+    slope_error = np.sqrt(cov[0,0])
+    
+    
     v_F_calculated = slope * eV / hbar  # Convert to m/s
     
     print(f"Calculated vF ≈ {v_F_calculated:.2e} m/s")
+    print("Error=", slope_error)
 
 
-plot_full_bz_surface(a_ang=2.46, gamma0=2.8, N=1000)
-plot_dirac_cone(qmax=5e8, N=1000, vF=1e6)
-check_slope(qmax=5e8, N=1000, vF=1e6)
+#plot_full_bz_surface(a_ang=2.46, gamma0=2.8, N=1000)
+#plot_dirac_cone(qmax=5e8, N=1000, vF=1e6)
+check_slope(qmax=5e8, N=800, vF=1e6)
