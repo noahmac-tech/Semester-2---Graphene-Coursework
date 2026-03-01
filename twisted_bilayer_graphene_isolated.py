@@ -326,12 +326,12 @@ def run_bandwidth_vs_angle(mn_list=None):
         H = (H + H.getH()) * 0.5
 
         deg = np.diff(H.tocsr().indptr)
-        print("min nnz per row:", deg.min())
-        print("isolated rows (nnz==0):", np.sum(deg == 0))
-        print("very weak rows (nnz<=2):", np.sum(deg <= 2))
+        #print("min nnz per row:", deg.min())
+        #print("isolated rows (nnz==0):", np.sum(deg == 0))
+        #print("very weak rows (nnz<=2):", np.sum(deg <= 2))
 
         W, _ = low_energy_bandwidth(H, k_eigs=14, take=8)
-        print(f"(m,n)=({m},{n})  θ={theta_deg:.3f}°  atoms={H.shape[0]}  W={W:.4f} eV")
+        #print(f"(m,n)=({m},{n})  θ={theta_deg:.3f}°  atoms={H.shape[0]}  W={W:.4f} eV")
 
         thetas_deg.append(theta_deg)
         Ws.append(W)
@@ -339,18 +339,31 @@ def run_bandwidth_vs_angle(mn_list=None):
     thetas_deg = np.array(thetas_deg)
     Ws = np.array(Ws)
 
-    coeffs = np.polyfit(thetas_deg, Ws, 2)
-    poly = np.poly1d(coeffs)
-
-    x = np.linspace(thetas_deg.max(), thetas_deg.min(), 200)
-    W_quad = poly(x)
-
     order = np.argsort(thetas_deg)
+    thetas_deg = thetas_deg[order]
+    Ws = Ws[order]
+
+    log_theta = np.log(thetas_deg)
+    log_W = np.log(Ws)
+
+    coeffs, cov = np.polyfit(log_theta, log_W, 1, cov=True)
+    alpha = coeffs[0]
+    A = np.exp(coeffs[1])
+
+    slope_error = np.sqrt(cov[0,0])
+
+    print("alpha: ", alpha)
+    print("Slope Error: ", slope_error)
+
+    theta_fit = np.linspace(thetas_deg.min(),thetas_deg.max(), 200)
+    W_fit = A * theta_fit**alpha
+
+    
     plt.figure(figsize=(7, 4))
-    plt.scatter(thetas_deg[order], Ws[order], marker="x", color='black')
-    plt.plot(x, W_quad, "-", label=r"Quadratic fit")
+    plt.loglog(thetas_deg, Ws, 'x', color='black', label='Data')
+    plt.loglog(theta_fit, W_fit, label=f'Fit: α = {alpha:.2f}')
     plt.legend()
-    plt.gca().invert_xaxis()
+    
     plt.xlabel("Twist angle θ (degrees)")
     plt.ylabel("W (eV)")
     plt.grid(True, alpha=0.3)
@@ -434,6 +447,6 @@ def run_dos(dos_angles=None):
     plt.show()
 
 
-#run_bandwidth_vs_angle()
+run_bandwidth_vs_angle()
 #run_bandstructure_comparison()
-run_dos()
+#run_dos()
