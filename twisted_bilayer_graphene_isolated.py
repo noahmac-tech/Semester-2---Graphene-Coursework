@@ -428,7 +428,6 @@ def run_dos(dos_angles=None):
     if dos_angles is None:
         dos_angles = [(5,6), (8,9), (10,11), (14,15)]
 
-    theta_list, Evhs_list, Dvhs_list = [], [], []
 
     plt.figure(figsize=(7, 4))
     for (m, n) in dos_angles:
@@ -456,6 +455,6 @@ def run_dos(dos_angles=None):
     plt.show()
 
 
-#run_bandwidth_vs_angle()
+run_bandwidth_vs_angle()
 #run_bandstructure_comparison()
-run_dos()
+#run_dos()
