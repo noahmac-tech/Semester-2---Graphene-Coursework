@@ -375,7 +375,7 @@ def run_bandstructure_comparison(angles_to_compare=None):
     if angles_to_compare is None:
         angles_to_compare = [(5,6), (8,9), (14,15)]
 
-    fig, axes = plt.subplots(3, 1, figsize=(7, 9), sharex=False)
+    fig, axes = plt.subplots(3, 1, figsize=(7, 9), sharex=True, sharey=True)
 
     for ax, (m, n) in zip(axes, angles_to_compare):
         theta = theta_from_mn(m, n)
@@ -387,6 +387,7 @@ def run_bandstructure_comparison(angles_to_compare=None):
 
         G, K, M = high_symmetry_points_moire(t1, t2)
         ks, x = make_k_path([G, K, M, G], n_per_seg=25)
+        x = x / x[-1]
 
         bands = []
         for kvec in ks:
@@ -401,14 +402,19 @@ def run_bandstructure_comparison(angles_to_compare=None):
         for b in range(bands.shape[1]):
             ax.plot(x, bands[:, b], lw=1)
 
-        ax.set_ylabel("Energy (eV)")
+        
         ax.set_title(f"θ = {theta_deg:.2f}°")
         ax.axhline(0, alpha=0.3)
-        ax.grid(True, alpha=0.2)
+        ax.grid(True, alpha=0.5)
+        ax.set_ylim(-0.08,0.08)
+        ax.tick_params(axis='both', labelsize=12)
+    
+    fig.supylabel("Energy (eV)", fontsize = 14)
 
-    axes[-1].set_xticks([x[0], x[len(x)//3], x[2*len(x)//3], x[-1]])
+    axes[-1].set_xticks([0, 1/3, 2/3, 1])
     axes[-1].set_xticklabels([r"$\Gamma$", r"$K$", r"$M$", r"$\Gamma$"])
-    axes[-1].set_xlabel("k-path in moiré Brillouin zone")
+    axes[-1].set_xlabel("k-path in moiré Brillouin zone", fontsize = 14)
+    
 
     plt.tight_layout()
     plt.savefig("TBG_bandstructure_comparison.png", bbox_inches='tight', pad_inches=0.1)
@@ -447,6 +453,6 @@ def run_dos(dos_angles=None):
     plt.show()
 
 
-run_bandwidth_vs_angle()
-#run_bandstructure_comparison()
+#run_bandwidth_vs_angle()
+run_bandstructure_comparison()
 #run_dos()

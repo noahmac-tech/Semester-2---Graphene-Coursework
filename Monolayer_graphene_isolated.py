@@ -80,16 +80,16 @@ def plot_dirac_cone(qmax, N, vF):
     ax.plot_surface(QX_nm, QY_nm, E_plus, cmap='inferno', alpha=0.9, linewidth=0, antialiased=True)
     ax.plot_surface(QX_nm, QY_nm, E_neg,  cmap='viridis', alpha=0.9, linewidth=0, antialiased=True)
 
-    ax.set_xlabel(r'$q_x$ (nm$^{-1}$)')
-    ax.set_ylabel(r'$q_y$ (nm$^{-1}$)')
-    ax.set_zlabel('Energy (eV)')
+    ax.set_xlabel(r'$q_x$ (nm$^{-1}$)', fontsize = 13)
+    ax.set_ylabel(r'$q_y$ (nm$^{-1}$)', fontsize = 13)
+    ax.set_zlabel('Energy (eV)', fontsize = 13)
     ax.set_xlim(-0.5, 0.5)
     ax.set_ylim(-0.5, 0.5)
     ax.set_zlim(-0.5, 0.5)
     ax.view_init(elev=8, azim=10)
     ax.set_box_aspect([1, 1, 1])
     ax.margins(0.1)
-
+    ax.tick_params(axis='both', labelsize=11)
     plt.tight_layout()
     plt.savefig('Monolayer_Graphene_Gamma_Point.png', bbox_inches='tight', pad_inches=0.1)
     plt.show()
@@ -128,5 +128,5 @@ def check_slope(qmax, N, vF):
 
 
 #plot_full_bz_surface(a_ang=2.46, gamma0=2.8, N=1000)
-#plot_dirac_cone(qmax=5e8, N=1000, vF=1e6)
-check_slope(qmax=5e8, N=800, vF=1e6)
+plot_dirac_cone(qmax=5e8, N=1000, vF=1e6)
+#check_slope(qmax=5e8, N=800, vF=1e6)
