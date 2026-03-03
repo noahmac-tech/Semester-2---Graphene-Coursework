@@ -447,9 +447,8 @@ def run_dos(dos_angles=None):
 
 
     plt.axvline(0, alpha=0.3)
-    plt.xlabel("Energy E (eV)")
-    plt.ylabel("DOS (arb. units)")
-    plt.title("DOS near charge neutrality vs twist angle")
+    plt.xlabel("Energy E (eV)", fontsize = 14)
+    plt.ylabel("DOS (arb. units)", fontsize = 14)
     plt.legend()
     plt.grid(True, alpha=0.2)
     plt.tight_layout()
@@ -457,6 +456,6 @@ def run_dos(dos_angles=None):
     plt.show()
 
 
-run_bandwidth_vs_angle()
+#run_bandwidth_vs_angle()
 #run_bandstructure_comparison()
-#run_dos()
+run_dos()
