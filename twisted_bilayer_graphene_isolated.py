@@ -306,8 +306,6 @@ def dos_from_kmesh(pos1, subl1, pos2, subl2, t1,t2, Nk=17, k_eigs = 40, sigma_e 
 
     return E, dos, evals_all
 
-import matplotlib.pyplot as plt
-
 def run_bandwidth_vs_angle(mn_list=None):
     if mn_list is None:
         mn_list = [(5,6), (6,7), (7,8), (8,9), (9,10), (10,11), (11,12), (12,13), (13,14), (14,15)]
@@ -325,6 +323,11 @@ def run_bandwidth_vs_angle(mn_list=None):
 
         H = build_sparse_H_tbg(pos1, subl1, pos2, subl2, t1, t2)
         H = (H + H.getH()) * 0.5
+        
+        N_atoms = H.shape[0]
+        print(f"(m,n)=({m},{n})  theta={theta_deg:.3f}  Matrix size = {N_atoms} x {N_atoms}")
+        print("Non-zero elements:", H.nnz)
+        print("Average nnz per row:", H.nnz / N_atoms)
 
         deg = np.diff(H.tocsr().indptr)
         #print("min nnz per row:", deg.min())
@@ -454,6 +457,6 @@ def run_dos(dos_angles=None):
     plt.show()
 
 
-#run_bandwidth_vs_angle()
-run_bandstructure_comparison()
+run_bandwidth_vs_angle()
+#run_bandstructure_comparison()
 #run_dos()
