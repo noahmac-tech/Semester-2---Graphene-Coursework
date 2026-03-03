@@ -193,6 +193,7 @@ def build_sparse_H_tbg_k(pos1, subl1, pos2, subl2, t1, t2, kvec):
     N1 = len(pos1)
     N2 = len(pos2)
     N = N1 + N2
+    
 
     rows, cols, data = [], [], []
 
