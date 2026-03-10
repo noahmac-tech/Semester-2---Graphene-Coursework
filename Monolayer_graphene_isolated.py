@@ -1,10 +1,9 @@
-import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 def plot_full_bz_surface(a_ang, gamma0, N):
-    """3D tight-binding dispersion over a square k-grid spanning ±K."""
+    """3D tight-binding dispersion over a square k-grid"""
     K = (4*np.pi)/(3*a_ang)
 
     kx = np.linspace(-K, K, N)
@@ -18,20 +17,24 @@ def plot_full_bz_surface(a_ang, gamma0, N):
         [-a_ang/2, -r_nn/2],          # down-left
     ])
 
+    # Structure factor
     def f(kx, ky):
         s = np.zeros_like(KX, dtype=complex)
         for rx, ry in sites:
             s += np.exp(1j * (kx*rx + ky*ry))
         return s
 
+    # Positive and negative energies
     E = gamma0 * np.abs(f(KX, KY))
     E_plus, E_neg = E, -E
 
+    # Plot of postive and negative energy surfaces
     fig = plt.figure(figsize=(10, 7))
     ax = fig.add_subplot(111, projection='3d')
     ax.plot_surface(KX, KY, E_plus, cmap='inferno', alpha=0.8, linewidth=0, antialiased=True)
     ax.plot_surface(KX, KY, E_neg,  cmap='viridis', alpha=0.8, linewidth=0, antialiased=True)
 
+    # Defining points of hexagon and then adding hexagon to plot
     Kmag = 4*np.pi/(3*a_ang)
     k2 = 2*np.pi/(3*a_ang)
     k3 = 2*np.pi/(np.sqrt(3)*a_ang)
@@ -69,12 +72,15 @@ def plot_dirac_cone(qmax, N, vF):
     qy = np.linspace(-qmax, qmax, N)
     QX, QY = np.meshgrid(qx, qy)
 
+    # q vector in nanometers
     QX_nm = QX * 1e-9
     QY_nm = QY * 1e-9
 
+    # Positive and negative energy surfaces
     E = hbar * vF * np.sqrt(QX**2 + QY**2) / eV
     E_plus, E_neg = E, -E
-
+    
+    # Plotting energy surfaces for small k around Dirac point
     fig = plt.figure(figsize=(10, 7))
     ax = fig.add_subplot(111, projection='3d')
     ax.plot_surface(QX_nm, QY_nm, E_plus, cmap='inferno', alpha=0.9, linewidth=0, antialiased=True)
