@@ -7,6 +7,7 @@ a = 2.46e-10
 gamma1 = 0.39 * eV
 vF = 1e6  # m/s
 
+# Bilayer Hamiltonian
 def H_bilayer(qx, qy):
     return np.array([
         [0, vF * hbar * (qx + 1j * qy), 0, 0],
@@ -15,6 +16,7 @@ def H_bilayer(qx, qy):
         [0, 0, vF * hbar * (qx + 1j * qy), 0],
     ])
 
+# Compute energy eigenvalues of bilayer Hamiltonian and pass them into bands array
 def compute_bands(qmax=5e8, N=200):
     qx = np.linspace(-qmax, qmax, N)
     qy = np.linspace(-qmax, qmax, N)
@@ -30,6 +32,7 @@ def compute_bands(qmax=5e8, N=200):
             bands[:, i, j] = eigs_J / eV  # eV
     return QX_nm, QY_nm, bands
 
+# Take a cut through qy=0 to plot 4 bands in 2D
 def plot_linecut(QX_nm, bands):
     N = QX_nm.shape[0]
     mid = N // 2  # qy=0 index
@@ -46,17 +49,6 @@ def plot_linecut(QX_nm, bands):
     plt.yticks(fontsize=12)
     plt.tight_layout()
     plt.savefig('Bilayer_Graphene_Bands_qy0.png', bbox_inches='tight', pad_inches=0.1)
-    plt.show()
-
-def plot_contour(QX_nm, QY_nm, bands):
-    plt.figure(figsize=(6, 5))
-    cs = plt.contourf(QX_nm, QY_nm, bands[2], levels=40)  # low-energy conduction band
-    plt.xlabel(r'$q_x$ (nm$^{-1}$)')
-    plt.ylabel(r'$q_y$ (nm$^{-1}$)')
-    plt.colorbar(cs, label='Energy (eV)')
-    plt.axis('equal')
-    plt.tight_layout()
-    plt.savefig('Bilayer_Graphene_Contour.png', bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
 def plot_surfaces(QX_nm, QY_nm, bands):
