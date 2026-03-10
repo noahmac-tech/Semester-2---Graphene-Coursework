@@ -1,34 +1,42 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Rotation matrix
 def rot(phi):
-    c, s = np.cos(phi), np.sin(phi)
-    return np.array([[c, -s], [s, c]])
+    a, b = np.cos(phi), np.sin(phi)
+    return np.array([[a, -b], [b, a]])
 
+# Plotting moire geometry for theta = 2.3 degrees
 def plot_moire(theta_deg=2.3, a_nm=0.246):
     theta_rad = np.radians(theta_deg)
 
+    # Primitive lattice vectors
     a1 = a_nm * np.array([0.5, np.sqrt(3)/2])
     a2 = a_nm * np.array([-0.5, np.sqrt(3)/2])
 
+    # carbon-carbon length --> defining atom A at (0,0) and then atom B at (0,a_cc)
     a_cc = a_nm / np.sqrt(3)
     tauA = np.array([0.0, 0.0])
     tauB = np.array([0.0, a_cc])
 
+    # Apply rotation to each layer
     R1 = rot(-theta_rad/2)
     R2 = rot(theta_rad/2)
 
+    # Calculating Moiré Superlattice
     L_M = a_nm / (2 * np.sin(theta_rad/2))
 
     aM1 = L_M * np.array([0.5,  np.sqrt(3)/2])
     aM2 = L_M * np.array([-0.5, np.sqrt(3)/2])
 
+    # Real-space coordinates
     W = 1.25 * L_M
 
     N = int(np.ceil(W/a_nm)) + 8
     ms = np.arange(-N, N+1)
     ns = np.arange(-N, N+1)
 
+    # Building lattice arrays
     ptsA, ptsB = [], []
     for m in ms:
         for n in ns:
@@ -39,17 +47,20 @@ def plot_moire(theta_deg=2.3, a_nm=0.246):
     ptsA = np.array(ptsA)
     ptsB = np.array(ptsB)
 
+    # Apply rotation matrices to unrotated coordinates
     A1 = (R1 @ ptsA.T).T
     A2 = (R2 @ ptsB.T).T
     B1 = (R1 @ ptsB.T).T
     B2 = (R2 @ ptsA.T).T
 
+    # Define cropped window for array sizes
     def in_window(P, W):
         return (np.abs(P[:, 0]) <= W) & (np.abs(P[:, 1]) <= W)
 
     A1, B1 = A1[in_window(A1, W)], B1[in_window(B1, W)]
     A2, B2 = A2[in_window(A2, W)], B2[in_window(B2, W)]
 
+    # Scatter plot of all A, B atoms in layers 1 and 2
     plt.figure(figsize=(8, 8))
     ax = plt.gca()
 
@@ -58,11 +69,12 @@ def plot_moire(theta_deg=2.3, a_nm=0.246):
     ax.scatter(A2[:, 0], A2[:, 1], s=6, alpha=0.35, label="Layer 2 (A)")
     ax.scatter(B2[:, 0], B2[:, 1], s=6, alpha=0.35, label="Layer 2 (B)")
 
-    O = -0.5*(aM1 + aM2)
-    P1 = O + aM1
-    P2 = O + aM2
-    P12 = O + aM1 + aM2
-    cell = np.vstack([O, P1, P12, P2, O])
+    # Define corners of moiré unit cell
+    Origin = -0.5*(aM1 + aM2)
+    P1 = Origin + aM1
+    P2 = Origin + aM2
+    P12 = Origin + aM1 + aM2
+    cell = np.vstack([Origin, P1, P12, P2, Origin])
 
     cell_xy = cell[:-1]
     xmin, ymin = cell_xy.min(axis=0)
@@ -72,10 +84,11 @@ def plot_moire(theta_deg=2.3, a_nm=0.246):
     ax.set_xlim(xmin - margin, xmax + margin)
     ax.set_ylim(ymin - margin, ymax + margin)
 
+    # Plot moiré unit cell
     ax.plot(cell[:, 0], cell[:, 1], 'k-', lw=2, label="Moiré Unit Cell")
 
-    mid_a1 = O + 0.5 * aM1
-    mid_a2 = O + 0.5 * aM2
+    mid_a1 = Origin + 0.5 * aM1
+    mid_a2 = Origin + 0.5 * aM2
     u1 = aM1 / np.linalg.norm(aM1)
     u2 = aM2 / np.linalg.norm(aM2)
     perp1 = np.array([-u1[1], u1[0]])
@@ -97,4 +110,4 @@ def plot_moire(theta_deg=2.3, a_nm=0.246):
     print(f"Twist angle θ = {theta_deg:.4f}°")
     print(f"Moiré lattice constant L_M = {L_M:.3f} nm")
 
-plot_moire(theta_deg=2.3, a_nm=0.246)
+#plot_moire(theta_deg=2.3, a_nm=0.246)
