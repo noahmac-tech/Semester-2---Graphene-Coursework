@@ -131,5 +131,5 @@ def check_slope(qmax, N, vF):
 
 
 #plot_full_bz_surface(a_ang=2.46, gamma0=2.8, N=1000)
-plot_dirac_cone(qmax=5e8, N=1000, vF=1e6)
+#plot_dirac_cone(qmax=5e8, N=1000, vF=1e6)
 #check_slope(qmax=5e8, N=800, vF=1e6)
