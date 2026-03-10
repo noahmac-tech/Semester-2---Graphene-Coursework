@@ -51,6 +51,7 @@ def plot_linecut(QX_nm, bands):
     plt.savefig('Bilayer_Graphene_Bands_qy0.png', bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
+# 3d surface plot of energies for 4 bands
 def plot_surfaces(QX_nm, QY_nm, bands):
     fig = plt.figure(figsize=(10, 7))
     ax = fig.add_subplot(111, projection='3d')
@@ -77,4 +78,5 @@ def plot_surfaces(QX_nm, QY_nm, bands):
 
 QX_nm, QY_nm, bands = compute_bands()
 
-plot_linecut(QX_nm, bands)
+#plot_linecut(QX_nm, bands)
+#plot_surfaces(QX_nm, QY_nm, bands)
