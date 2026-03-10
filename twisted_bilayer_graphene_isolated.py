@@ -4,55 +4,66 @@ from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import eigsh
 from scipy.spatial import cKDTree
 
+# Parameters
 a = 2.46
 d = 3.35
 gamma0 = 2.8
 t0 = 0.35
 r0 = 0.45
 
+# nearest-neighbour cutoff and interlayer_cutoff
 r_nn = a / np.sqrt(3)
 nn_cut = 1.10 * r_nn
 interlayer_cut = 5.0
 
+# Primitive lattice vectors
 a1 = a * np.array([ 1/2,  np.sqrt(3)/2])
 a2 = a * np.array([-1/2,  np.sqrt(3)/2])
 
+# Sublattice atomic sites --> A at (0,0) B at (0, r_nn)
 tauA = np.array([0.0, 0.0])
 tauB = np.array([0.0, r_nn])
 
+# Rotation matrix
 def rot(theta):
     c, s = np.cos(theta), np.sin(theta)
     return np.array([[c, -s],
                      [s,  c]])
 
+# Commensurate angle calculation
 def theta_from_mn(m, n):
     num = m**2 + 4*m*n + n**2
     den = 2*(m**2 + m*n + n**2)
     cos_t = np.clip(num/den, -1, 1)
     return np.arccos(cos_t)
 
+# supercell vectors
 def supercell_vectors(m, n):
     t1 = m*a1 + n*a2
     t2 = -n*a1 + (m+n)*a2
     return t1, t2
 
+# Convert real_space coordinates to fractional coordinates --> can tell if coordinate is outside unit cell boundaries a bit more easily
 def fractional_coors(points, t1, t2):
     M = np.column_stack((t1, t2))
     invM = np.linalg.inv(M)
     return points @ invM.T
 
+# Applies periodic boundary conditions
 def wrap_to_cell(points, t1, t2):
     uv = fractional_coors(points, t1, t2)
     uv_wrapped = uv - np.floor(uv)
     return uv_wrapped @ np.column_stack((t1, t2)).T
 
 def generate_layer1_in_cell(m, n):
-    t1, t2 = supercell_vectors(m, n)
+    t1, t2 = supercell_vectors(m, n) # generate supercell vectors
 
+    # Makes sure that grid area covers entire supercell area
     span = (m + n) + 2
     ii = np.arange(-span, span+1)
     jj = np.arange(-span, span+1)
 
+    # Building lattice points
     pts = []
     subl = []
 
@@ -65,6 +76,7 @@ def generate_layer1_in_cell(m, n):
     pts = np.array(pts)
     subl = np.array(subl, dtype=int)
 
+    # Convert to fractional coordinates and compare if there are outside boundaries --> mask
     uv = fractional_coors(pts, t1, t2)
     mask = (uv[:,0] >= 0) & (uv[:,0] < 1) & (uv[:,1] >= 0) & (uv[:,1] < 1)
     
@@ -73,6 +85,7 @@ def generate_layer1_in_cell(m, n):
 
     return pts_cell, subl_cell, t1, t2
 
+# Hamiltonian (No k-dependence)
 def build_sparse_H_tbg(pos1, subl1, pos2, subl2, t1, t2):
 
     N1 = len(pos1)
@@ -81,6 +94,7 @@ def build_sparse_H_tbg(pos1, subl1, pos2, subl2, t1, t2):
 
     rows, cols, data = [], [], []
 
+    # creates a 3x3 grid so that I can use image cells to simulate infinite crystals
     shifts = []
     for u in [-1, 0, 1]:
         for v in [-1, 0, 1]:
@@ -90,7 +104,7 @@ def build_sparse_H_tbg(pos1, subl1, pos2, subl2, t1, t2):
     pos1_img = (pos1[None,:,:] + shifts[:,None,:]).reshape(-1, 2)
     idx1_img = np.tile(np.arange(N1), len(shifts))
 
-    
+    # efficient searching algorithm that sorts atoms spatially (intralayer)
     tree1 = cKDTree(pos1_img)
     for i in range(N1):
         neigh = tree1.query_ball_point(pos1[i], nn_cut)
@@ -104,7 +118,7 @@ def build_sparse_H_tbg(pos1, subl1, pos2, subl2, t1, t2):
                     cols += [j, i]
                     data += [-gamma0, -gamma0]
     
-    
+    # repeat for layer 2 (intralayer)
     pos2_img = (pos2[None,:,:] + shifts[:,None,:]).reshape(-1,2)
     idx2_img = np.tile(np.arange(N2), len(shifts))
 
@@ -123,7 +137,7 @@ def build_sparse_H_tbg(pos1, subl1, pos2, subl2, t1, t2):
                     cols += [jj, ii]
                     data += [-gamma0, -gamma0]
     
-    
+    # Interlayer
     tree2_inter = cKDTree(pos2_img)
     for i in range(N1):
         neigh = tree2_inter.query_ball_point(pos1[i], interlayer_cut)
@@ -140,22 +154,23 @@ def build_sparse_H_tbg(pos1, subl1, pos2, subl2, t1, t2):
             cols += [jj, ii]
             data += [t, t]
     
+    # Build hamiltonian matrix
     H = coo_matrix((data, (rows, cols)), shape=(N, N)).tocsr()
     return H
 
+# calculate energy width of flat bands
 def low_energy_bandwidth(H, k_eigs=12, take=6, sigma = 1e-6):
     
-    H = (H + H.getH()) * 0.5
+    H = (H + H.getH()) * 0.5 # Enforces hermiticity
     evals = eigsh(H, k =k_eigs, sigma = sigma, which='LM', return_eigenvectors=False)
     evals = np.sort(np.real(evals))
-    closest = evals[np.argsort(np.abs(evals))[:take]]
     mid = len(evals) // 2
     low = evals[mid-4:mid+4]
     W = low.max() - low.min()
 
     return W, evals
 
-
+# transform real-space supercell vectors to momentum space
 def reciprocal_vectors(t1, t2):
     A = np.column_stack((t1,t2))
     B = 2*np.pi * np.linalg.inv(A).T
@@ -163,6 +178,7 @@ def reciprocal_vectors(t1, t2):
     b2 = B[:, 1]
     return b1, b2
 
+# Define high-symmetry points
 def high_symmetry_points_moire(t1, t2):
     b1, b2 = reciprocal_vectors(t1, t2)
     G = np.array([0.0, 0.0])
@@ -170,6 +186,7 @@ def high_symmetry_points_moire(t1, t2):
     K = (2 * b1 + b2) / 3.0
     return G, M, K
 
+# Walk through Brillouin zone
 def make_k_path(points, n_per_seg):
     ks = []
     x = [0.0]
@@ -190,13 +207,14 @@ def make_k_path(points, n_per_seg):
 
 
 def build_sparse_H_tbg_k(pos1, subl1, pos2, subl2, t1, t2, kvec):
+    
     N1 = len(pos1)
     N2 = len(pos2)
     N = N1 + N2
-    
 
     rows, cols, data = [], [], []
 
+    # 3x3 grid for images
     shifts = []
     shift_uv = []
     for u in [-1, 0, 1]:
@@ -211,7 +229,7 @@ def build_sparse_H_tbg_k(pos1, subl1, pos2, subl2, t1, t2, kvec):
     
     idx1_img = np.tile(np.arange(N1), len(shifts))
     
-    sid1 = np.repeat(np.arange(len(shifts)), N1)
+    sid1 = np.repeat(np.arange(len(shifts)), N1) # tracks individual atoms 
 
     tree1 = cKDTree(pos1_img)
     for i in range(N1):
@@ -222,12 +240,13 @@ def build_sparse_H_tbg_k(pos1, subl1, pos2, subl2, t1, t2, kvec):
                 continue
             if subl1[i] != subl1[j]:
                 
+                # phase factor due to hopping
                 S = shifts[sid1[p]]
                 phase = np.exp(1j * (kvec @ S))
                 
                 rows += [i, j]
                 cols += [j, i]
-                data += [-gamma0*phase, -gamma0*np.conjugate(phase)]
+                data += [-gamma0*phase, -gamma0*np.conjugate(phase)] # makes sure the if hopping to i to j (phase) but if hopping j to i (conjugate(phase))
 
     
     pos2_img = (pos2[None,:,:] + shifts[:,None,:]).reshape(-1, 2)
@@ -250,7 +269,7 @@ def build_sparse_H_tbg_k(pos1, subl1, pos2, subl2, t1, t2, kvec):
                 cols += [jj, ii]
                 data += [-gamma0*phase, -gamma0*np.conjugate(phase)]
 
-    
+    # Interlayer
     tree2_inter = cKDTree(pos2_img)
     for i in range(N1):
         neigh = tree2_inter.query_ball_point(pos1[i], interlayer_cut)
@@ -271,12 +290,13 @@ def build_sparse_H_tbg_k(pos1, subl1, pos2, subl2, t1, t2, kvec):
 
     Hk = coo_matrix((data, (rows, cols)), shape=(N, N)).tocsr()
     
-    Hk = (Hk + Hk.getH()) * 0.5
+    Hk = (Hk + Hk.getH()) * 0.5 # guarantee symmetry
     return Hk
 
-
+# Calculates density of states
 def dos_from_kmesh(pos1, subl1, pos2, subl2, t1,t2, Nk=17, k_eigs = 40, sigma_e = 0.008, Emin = -0.15, Emax=0.15, nE=1200, sigma_shift=1e-4):
 
+    # momentum-space grid
     b1, b2 = reciprocal_vectors(t1, t2)
 
     us = np.linspace(0, 1, Nk, endpoint=False)
@@ -284,6 +304,7 @@ def dos_from_kmesh(pos1, subl1, pos2, subl2, t1,t2, Nk=17, k_eigs = 40, sigma_e 
 
     evals_all = []
 
+    # calculating eigenvalues
     for u in us:
         for v in vs:
             kvec = u*b1 + v*b2
@@ -295,9 +316,10 @@ def dos_from_kmesh(pos1, subl1, pos2, subl2, t1,t2, Nk=17, k_eigs = 40, sigma_e 
 
     evals_all = np.concatenate(evals_all)
 
+    # Gaussian broadening
     E = np.linspace(Emin, Emax, nE)
     dos = np.zeros_like(E)
-    pref = 1.0 / ((np.sqrt(2*np.pi) * sigma_e))  # normalization prefactor
+    pref = 1.0 / ((np.sqrt(2*np.pi) * sigma_e))  # normalisation prefactor
     
     for e0 in evals_all:
         dos += pref * np.exp(-0.5 * ((E - e0)/sigma_e)**2)
@@ -306,13 +328,17 @@ def dos_from_kmesh(pos1, subl1, pos2, subl2, t1,t2, Nk=17, k_eigs = 40, sigma_e 
 
     return E, dos, evals_all
 
+# Plots bandwidth against angle as a log-log graph with a power law fit applied to it
 def run_bandwidth_vs_angle(mn_list=None):
+    
+    # angles I want
     if mn_list is None:
         mn_list = [(5,6), (6,7), (7,8), (8,9), (9,10), (10,11), (11,12), (12,13), (13,14), (14,15)]
 
     thetas_deg = []
     Ws = []
-
+    
+    # Loop through angles building superlattice and calculating eigenvalues
     for (m, n) in mn_list:
         theta = theta_from_mn(m, n)
         theta_deg = np.degrees(theta)
@@ -324,22 +350,20 @@ def run_bandwidth_vs_angle(mn_list=None):
         H = build_sparse_H_tbg(pos1, subl1, pos2, subl2, t1, t2)
         H = (H + H.getH()) * 0.5
         
+        # Calculate size of matrix and number of non-zero elements
         N_atoms = H.shape[0]
         print(f"(m,n)=({m},{n})  theta={theta_deg:.3f}  Matrix size = {N_atoms} x {N_atoms}")
         print("Non-zero elements:", H.nnz)
         print("Average nnz per row:", H.nnz / N_atoms)
 
-        deg = np.diff(H.tocsr().indptr)
-        #print("min nnz per row:", deg.min())
-        #print("isolated rows (nnz==0):", np.sum(deg == 0))
-        #print("very weak rows (nnz<=2):", np.sum(deg <= 2))
-
+        # calculate bandwidths
         W, _ = low_energy_bandwidth(H, k_eigs=14, take=8)
         #print(f"(m,n)=({m},{n})  θ={theta_deg:.3f}°  atoms={H.shape[0]}  W={W:.4f} eV")
 
         thetas_deg.append(theta_deg)
         Ws.append(W)
 
+    # Power law fit to calculate alpha
     thetas_deg = np.array(thetas_deg)
     Ws = np.array(Ws)
 
@@ -362,7 +386,7 @@ def run_bandwidth_vs_angle(mn_list=None):
     theta_fit = np.linspace(thetas_deg.min(),thetas_deg.max(), 200)
     W_fit = A * theta_fit**alpha
 
-    
+    # log-log plot
     plt.figure(figsize=(7, 4))
     plt.loglog(thetas_deg, Ws, 'x', color='black', label='Data')
     plt.loglog(theta_fit, W_fit, label=f'Fit: α = {alpha:.2f}')
@@ -375,7 +399,10 @@ def run_bandwidth_vs_angle(mn_list=None):
     plt.savefig("TBG_bandwidth_vs_angle.png", bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
+# Plots that compare energy bands for different angles
 def run_bandstructure_comparison(angles_to_compare=None):
+    
+    # angles to compare
     if angles_to_compare is None:
         angles_to_compare = [(5,6), (8,9), (14,15)]
 
@@ -385,14 +412,17 @@ def run_bandstructure_comparison(angles_to_compare=None):
         theta = theta_from_mn(m, n)
         theta_deg = np.degrees(theta)
 
+        # generate superlattice
         pos1, subl1, t1, t2 = generate_layer1_in_cell(m, n)
         pos2 = wrap_to_cell((pos1 @ rot(theta).T), t1, t2)
         subl2 = subl1.copy()
 
+        # walk through Brillouin zone
         G, K, M = high_symmetry_points_moire(t1, t2)
         ks, x = make_k_path([G, K, M, G], n_per_seg=25)
         x = x / x[-1]
 
+        # calculate eigenvalues
         bands = []
         for kvec in ks:
             Hk = build_sparse_H_tbg_k(pos1, subl1, pos2, subl2, t1, t2, kvec)
@@ -402,6 +432,7 @@ def run_bandstructure_comparison(angles_to_compare=None):
             mid = len(evals)//2
             bands.append(evals[mid-4:mid+4])
 
+        # plot bands
         bands = np.array(bands)
         for b in range(bands.shape[1]):
             ax.plot(x, bands[:, b], lw=1)
@@ -413,7 +444,7 @@ def run_bandstructure_comparison(angles_to_compare=None):
         ax.set_ylim(-0.08,0.08)
         ax.tick_params(axis='both', labelsize=12)
     
-    fig.supylabel("Energy (eV)", fontsize = 14)
+    fig.supylabel("Energy (eV)", fontsize = 14) # plots share y-axis label
 
     axes[-1].set_xticks([0, 1/3, 2/3, 1])
     axes[-1].set_xticklabels([r"$\Gamma$", r"$K$", r"$M$", r"$\Gamma$"])
@@ -424,7 +455,10 @@ def run_bandstructure_comparison(angles_to_compare=None):
     plt.savefig("TBG_bandstructure_comparison.png", bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
+
 def run_dos(dos_angles=None):
+    
+    # define angles
     if dos_angles is None:
         dos_angles = [(5,6), (8,9), (10,11), (14,15)]
 
@@ -434,14 +468,17 @@ def run_dos(dos_angles=None):
         theta = theta_from_mn(m, n)
         theta_deg = np.degrees(theta)
 
+        # generate superlattice
         pos1, subl1, t1, t2 = generate_layer1_in_cell(m, n)
         pos2 = wrap_to_cell(pos1 @ rot(theta).T, t1, t2)
         subl2 = subl1.copy()
 
+        # calculate energy and density of states
         E, dos, _ = dos_from_kmesh(pos1, subl1, pos2, subl2, t1, t2,
                                    Nk=17, k_eigs=40, sigma_e=0.008,
                                    Emin=-0.15, Emax=0.15, nE=1200)
 
+        # plot density of states as a function of energy
         plt.plot(E, dos, lw=1.5, label=f"{theta_deg:.2f}°")
 
 
@@ -455,6 +492,6 @@ def run_dos(dos_angles=None):
     plt.show()
 
 
-run_bandwidth_vs_angle()
+#run_bandwidth_vs_angle()
 #run_bandstructure_comparison()
 #run_dos()
