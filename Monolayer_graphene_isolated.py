@@ -116,10 +116,7 @@ def check_slope(qmax, N, vF):
     coeffs, cov = np.polyfit(np.abs(q_fit), E_fit, 1, cov=True)
     
     slope = coeffs[0]
-    intercept = coeffs[1]
-
     slope_error = np.sqrt(cov[0,0])
-    
     
     v_F_calculated = slope * eV / hbar  # Convert to m/s
     
